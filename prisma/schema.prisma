@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ai_summaries {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id           String?             @db.Uuid
+  platform_id       String?             @db.Uuid
+  generated_at      DateTime?           @default(now()) @db.Timestamptz(6)
+  tldr              String
+  pros              String[]
+  cons              String[]
+  raw_llm_output    Json
+  games             games?              @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  platforms         platforms?          @relation(fields: [platform_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  category_scores   category_scores[]
+  playtime_segments playtime_segments[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model category_scores {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  summary_id   String?       @db.Uuid
+  category     String        @db.VarChar(50)
+  score        Decimal       @db.Decimal(3, 1)
+  summary_text String?
+  ai_summaries ai_summaries? @relation(fields: [summary_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model game_platforms {
+  game_id      String    @db.Uuid
+  platform_id  String    @db.Uuid
+  release_date DateTime? @db.Date
+  games        games     @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  platforms    platforms @relation(fields: [platform_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([game_id, platform_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model game_prices {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id     String?    @db.Uuid
+  platform_id String?    @db.Uuid
+  store_id    String?    @db.Uuid
+  price       Decimal    @db.Decimal(10, 2)
+  currency    String?    @default("USD") @db.VarChar(3)
+  url         String
+  updated_at  DateTime?  @default(now()) @db.Timestamptz(6)
+  games       games?     @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  platforms   platforms? @relation(fields: [platform_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stores      stores?    @relation(fields: [store_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([game_id, platform_id, store_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model games {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  igdb_id              Int?                   @unique
+  title                String                 @db.VarChar(255)
+  slug                 String                 @unique @db.VarChar(255)
+  release_date         DateTime?              @db.Date
+  developer            String?                @db.VarChar(255)
+  publisher            String?                @db.VarChar(255)
+  genres               String[]
+  cover_url            String?
+  banner_url           String?
+  is_early_access      Boolean?               @default(false)
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  summary              String?
+  ai_summaries         ai_summaries[]
+  game_external_links  game_external_links[]
+  game_platforms       game_platforms[]
+  game_prices          game_prices[]
+  hardware_performance hardware_performance[]
+  patches              patches[]
+  reviews              reviews[]
+  score_snapshots      score_snapshots[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hardware_performance {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id          String?    @db.Uuid
+  platform_id      String?    @db.Uuid
+  performance_tier String     @db.VarChar(20)
+  hardware_spec    String     @db.VarChar(255)
+  notes            String?
+  fps_target       Int?
+  games            games?     @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  platforms        platforms? @relation(fields: [platform_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model patches {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id                  String?  @db.Uuid
+  version                  String   @db.VarChar(50)
+  release_date             DateTime @db.Date
+  description              String?
+  community_reaction_score Decimal? @db.Decimal(3, 1)
+  ai_summary               String?
+  games                    games?   @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model platforms {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String                 @db.VarChar(50)
+  slug                 String                 @unique @db.VarChar(50)
+  logo_url             String?
+  ai_summaries         ai_summaries[]
+  game_platforms       game_platforms[]
+  game_prices          game_prices[]
+  hardware_performance hardware_performance[]
+  reviews              reviews[]
+  score_snapshots      score_snapshots[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model playtime_segments {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  summary_id   String?       @db.Uuid
+  min_hours    Decimal       @db.Decimal(8, 2)
+  max_hours    Decimal       @db.Decimal(8, 2)
+  segment_name String        @db.VarChar(50)
+  tldr         String
+  avg_score    Decimal       @db.Decimal(3, 1)
+  ai_summaries ai_summaries? @relation(fields: [summary_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model reviews {
+  id                   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id              String?    @db.Uuid
+  platform_id          String?    @db.Uuid
+  source_id            String?    @db.Uuid
+  author_id            String?    @db.VarChar(255)
+  author_name          String?    @db.VarChar(255)
+  author_avatar_url    String?
+  raw_score            Decimal?   @db.Decimal(5, 2)
+  raw_score_max        Decimal?   @db.Decimal(5, 2)
+  normalized_score     Decimal    @db.Decimal(5, 2)
+  title                String?    @db.VarChar(255)
+  body                 String?
+  language             String?    @default("en") @db.VarChar(10)
+  playtime_hours       Decimal?   @db.Decimal(8, 2)
+  is_verified_purchase Boolean?   @default(false)
+  helpful_count        Int?       @default(0)
+  status               String?    @default("active") @db.VarChar(20)
+  flag_reason          String?
+  created_at           DateTime   @db.Timestamptz(6)
+  updated_at           DateTime?  @default(now()) @db.Timestamptz(6)
+  games                games?     @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  platforms            platforms? @relation(fields: [platform_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sources              sources?   @relation(fields: [source_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([game_id, created_at(sort: Desc)], map: "idx_reviews_created")
+  @@index([game_id, platform_id, status], map: "idx_reviews_game_platform")
+  @@index([game_id, playtime_hours(sort: Desc)], map: "idx_reviews_playtime")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model score_snapshots {
+  id                      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id                 String?    @db.Uuid
+  platform_id             String?    @db.Uuid
+  snapshot_date           DateTime   @db.Date
+  critic_score            Decimal?   @db.Decimal(5, 2)
+  user_score              Decimal?   @db.Decimal(5, 2)
+  playtime_weighted_score Decimal?   @db.Decimal(5, 2)
+  review_count            Int?
+  games                   games?     @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  platforms               platforms? @relation(fields: [platform_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([game_id, platform_id, snapshot_date])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sources {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String    @db.VarChar(100)
+  type          String    @db.VarChar(20)
+  logo_url      String?
+  requires_auth Boolean?  @default(false)
+  reviews       reviews[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model stores {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String        @db.VarChar(100)
+  slug               String        @unique @db.VarChar(50)
+  affiliate_base_url String?
+  game_prices        game_prices[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model game_external_links {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id    String?   @db.Uuid
+  site_name  String    @db.VarChar(100)
+  site_type  String    @db.VarChar(20)
+  url        String
+  score      Decimal?  @db.Decimal(5, 2)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  games      games?    @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([game_id, site_name])
+  @@index([game_id, site_type], map: "idx_external_links_game")
+}
