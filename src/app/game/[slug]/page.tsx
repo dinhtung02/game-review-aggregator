@@ -204,25 +204,29 @@ export default async function GameDetailPage({ params }: { params: Promise<{ slu
             </div>
 
             <div className="space-y-4">
-              {game.reviews.length > 0 ? game.reviews.map((review) => (
-                <div key={review.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <div className="font-bold text-white">{review.author_name || 'Anonymous'}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {review.playtime_hours ? `${review.playtime_hours.toFixed(1)} hours played` : 'Playtime unknown'} • {review.is_verified_purchase ? '✅ Verified' : 'Unverified'}
+              {game.reviews.length > 0 ? game.reviews.map((review) => {
+                const reviewScore = Number(review.normalized_score)
+                const playtime = Number(review.playtime_hours)
+                return (
+                  <div key={review.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <div className="font-bold text-white">{review.author_name || 'Anonymous'}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {playtime ? `${playtime.toFixed(1)} hours played` : 'Playtime unknown'} • {review.is_verified_purchase ? '✅ Verified' : 'Unverified'}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-yellow-400 font-bold">
+                        {(reviewScore / 10).toFixed(1)}/10
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-yellow-400 font-bold">
-                      {(review.normalized_score / 10).toFixed(1)}/10
+                    <p className="text-gray-300 text-sm leading-relaxed mb-3">{review.body || "No text provided."}</p>
+                    <div className="text-xs text-gray-500 flex items-center gap-4">
+                      <span>👍 {review.helpful_count} found this helpful</span>
                     </div>
                   </div>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-3">{review.body || "No text provided."}</p>
-                  <div className="text-xs text-gray-500 flex items-center gap-4">
-                    <span>👍 {review.helpful_count} found this helpful</span>
-                  </div>
-                </div>
-              )) : (
+                )
+              }) : (
                 <div className="text-center py-8 text-gray-500 bg-gray-900 rounded-xl border border-gray-800">
                   <p>No reviews fetched yet.</p>
                 </div>
